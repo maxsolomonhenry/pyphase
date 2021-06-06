@@ -1,2 +1,2 @@
-# pyphase
-Simple phase vocoder in python
+# PyPhase
+A simple phase vocoder in python.
