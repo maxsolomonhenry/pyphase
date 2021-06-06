@@ -7,9 +7,11 @@ import scipy.io.wavfile
 def phase_vocoder(x, stretch_factor, frame_size=1024):
     """Time-stretch a signal x by a given stretch factor."""
 
-    EPS = 1e-4
+    EPS = 1e-12
 
     hop_size = frame_size // 4
+    hN = int(frame_size // 2) + 1
+    window = np.hamming(frame_size)
 
     # Analysis hops faster or slower than synthesis, to time- squish or stretch.
     analysis_hop_size = int(hop_size // stretch_factor)
@@ -27,8 +29,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
     x = np.pad(x, [hop_size, samples_to_pad])
 
     # Initialize variables.
-    Y_last = np.zeros(frame_size)
-    window = np.hanning(frame_size)
+    Y_last = np.zeros(hN)
 
     # Setting up pointers.
     pivot_in = 0
@@ -45,23 +46,24 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
         pivot_frame *= window
 
         current_frame = x[current_in:current_out]
-        current_frame *= window
 
-        X_pivot = np.fft.fft(pivot_frame)
-        X_current = np.fft.fft(current_frame)
+        X_pivot = np.fft.rfft(pivot_frame)
+        X_current = np.fft.rfft(current_frame)
+        pivot_frame *= window
 
         # From M. Puckette, "Phase-locked vocoder." 1995.
         Y_phase_locked = Y_last
         Y_phase_locked[1:] -= Y_last[:-1]
         Y_phase_locked[:-1] -= Y_last[1:]
 
-        tmp = Y_phase_locked / X_pivot
-        new_phase = (tmp + EPS) / (np.abs(tmp) + EPS)
+        tmp = (Y_phase_locked + EPS) / (X_pivot + EPS)
+        new_phase = tmp / np.abs(tmp)
 
         Y_current = X_current * new_phase
 
-        y_current = np.fft.ifft(Y_current)
+        y_current = np.fft.irfft(Y_current)
         y_current = np.real(y_current)
+        y_current *= (window)
 
         y[write_in:write_out] += y_current
 
@@ -93,7 +95,7 @@ if __name__ == '__main__':
     plt.plot(time_x, x, label='Original')
 
     stretch_factor = 1
-    y = phase_vocoder(x, stretch_factor, frame_size=1024)
+    y = phase_vocoder(x, stretch_factor, frame_size=512)
 
     time_y = np.arange(len(y)) / sr
     plt.plot(time_y, y, label='Phase vocoder')
