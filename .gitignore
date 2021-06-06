@@ -1,3 +1,4 @@
 *.wav
+.idea/
 *.mp3
 .DS_STORE

@@ -90,12 +90,11 @@ if __name__ == '__main__':
     x = x / np.iinfo(np.int16).max
     time_x = np.arange(len(x)) / sr
 
-    plt.plot(time_x, x)
-    plt.show()
+    plt.plot(time_x, x, label='Original')
 
     stretch_factor = 1
     y = phase_vocoder(x, stretch_factor, frame_size=1024)
 
     time_y = np.arange(len(y)) / sr
-    plt.plot(time_y, y)
+    plt.plot(time_y, y, label='Phase vocoder')
     plt.show()
