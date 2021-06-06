@@ -1,7 +1,4 @@
-import math
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy.io.wavfile
 
 
 def phase_vocoder(x, stretch_factor, frame_size=1024):
@@ -16,7 +13,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
     # Analysis hops faster or slower than synthesis, to time- squish or stretch.
     analysis_hop_size = int(hop_size // stretch_factor)
 
-    num_frames = math.ceil(len(x) / analysis_hop_size)
+    num_frames = int(np.ceil(len(x) / analysis_hop_size))
 
     y_num_samples = (num_frames - 1) * hop_size + frame_size
     y = np.zeros(y_num_samples)
@@ -84,6 +81,8 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import scipy.io.wavfile
 
     file_path = "../audio/008-you-possess-the-treasure-you-seek-seed001.wav"
 
