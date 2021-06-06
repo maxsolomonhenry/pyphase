@@ -1,45 +1,18 @@
-import IPython.display as ipd
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io.wavfile
-import sys
-
-
-def frame_signal(x, frame_size=1024, hop_size=256):
-    """Returns x as an array of frames."""
-
-    num_samples = len(x)
-    num_frames = math.ceil(num_samples / hop_size)
-
-    tmp = (num_frames - 1) * hop_size + frame_size
-    samples_to_pad = int(tmp - num_samples)
-
-    x = np.pad(x, [0, samples_to_pad])
-
-    y = np.zeros([num_frames, frame_size])
-
-    read_in = 0
-    read_out = read_in + frame_size
-
-    for f in range(num_frames):
-        y[f, :] = x[read_in:read_out]
-
-        read_in += hop_size
-        read_out = read_in + frame_size
-
-    return y
 
 
 def phase_vocoder(x, stretch_factor, frame_size=1024):
     """Time-stretch a signal x by a given stretch factor."""
 
-    EPS = np.finfo(float).eps
+    EPS = 1e-4
 
     hop_size = frame_size // 4
 
     # Analysis hops faster or slower than synthesis, to time- squish or stretch.
-    analysis_hop_size = hop_size // stretch_factor
+    analysis_hop_size = int(hop_size // stretch_factor)
 
     num_frames = math.ceil(len(x) / analysis_hop_size)
 
@@ -48,6 +21,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
 
     tmp = (num_frames - 1) * analysis_hop_size + frame_size
     samples_to_pad = tmp - len(x)
+    samples_to_pad = np.int(samples_to_pad)
 
     # Pad beginning of `x` to facilitate first pivot frame.
     x = np.pad(x, [hop_size, samples_to_pad])
@@ -77,8 +51,12 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
         X_current = np.fft.fft(current_frame)
 
         # From M. Puckette, "Phase-locked vocoder." 1995.
-        tmp = (Y_last + EPS) / (X_pivot + EPS)
-        new_phase = tmp / np.abs(tmp)
+        Y_phase_locked = Y_last
+        Y_phase_locked[1:] -= Y_last[:-1]
+        Y_phase_locked[:-1] -= Y_last[1:]
+
+        tmp = Y_phase_locked / X_pivot
+        new_phase = (tmp + EPS) / (np.abs(tmp) + EPS)
 
         Y_current = X_current * new_phase
 
@@ -115,7 +93,7 @@ if __name__ == '__main__':
     plt.plot(time_x, x)
     plt.show()
 
-    stretch_factor = 2
+    stretch_factor = 1
     y = phase_vocoder(x, stretch_factor, frame_size=1024)
 
     time_y = np.arange(len(y)) / sr
