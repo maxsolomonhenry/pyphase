@@ -1,2 +1,2 @@
-# PyPhase
-A simple phase vocoder in python.
+# PyPhase + other tools.
+Python tools for time-stretching, clip concatenation, etc. Currently unorganized.
