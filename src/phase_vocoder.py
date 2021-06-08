@@ -1,19 +1,22 @@
+from copy import copy
+import math
 import numpy as np
+from sys import float_info
 
 
 def phase_vocoder(x, stretch_factor, frame_size=1024):
     """Time-stretch a signal x by a given stretch factor."""
 
-    EPS = 1e-12
+    EPS = float_info.epsilon
 
-    hop_size = frame_size // 4
-    hN = int(frame_size // 2) + 1
-    window = np.hamming(frame_size)
+    hop_size = math.ceil(frame_size / 4)
+    hN = math.floor(frame_size / 2) + 1
+    window = np.hanning(frame_size) + [0]
 
     # Analysis hops faster or slower than synthesis, to time- squish or stretch.
-    analysis_hop_size = int(hop_size // stretch_factor)
+    analysis_hop_size = math.ceil(hop_size / stretch_factor)
 
-    num_frames = int(np.ceil(len(x) / analysis_hop_size))
+    num_frames = math.ceil(len(x) / analysis_hop_size)
 
     y_num_samples = (num_frames - 1) * hop_size + frame_size
     y = np.zeros(y_num_samples)
@@ -39,28 +42,34 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
     write_out = write_in + frame_size
 
     for f in range(num_frames):
-        pivot_frame = x[pivot_in:pivot_out]
+        pivot_frame = copy(x[pivot_in:pivot_out])
         pivot_frame *= window
 
-        current_frame = x[current_in:current_out]
+        current_frame = copy(x[current_in:current_out])
+        current_frame *= window
 
         X_pivot = np.fft.rfft(pivot_frame)
         X_current = np.fft.rfft(current_frame)
-        pivot_frame *= window
 
         # From M. Puckette, "Phase-locked vocoder." 1995.
-        Y_phase_locked = Y_last
-        Y_phase_locked[1:] -= Y_last[:-1]
-        Y_phase_locked[:-1] -= Y_last[1:]
+        tmp = Y_last
+        tmp[1:] -= Y_last[:-1]
+        tmp[:-1] -= Y_last[1:]
+        Y_last = tmp
 
-        tmp = (Y_phase_locked + EPS) / (X_pivot + EPS)
-        new_phase = tmp / np.abs(tmp)
+        Y_last[np.where(Y_last == 0)] = EPS
+        X_pivot[np.where(X_pivot == 0)] = EPS
+
+        a = Y_last / X_pivot
+        b = abs(Y_last  / X_pivot)
+
+        new_phase = a / b
 
         Y_current = X_current * new_phase
 
         y_current = np.fft.irfft(Y_current)
-        y_current = np.real(y_current)
-        y_current *= (window)
+        y_current = np.real_if_close(y_current)
+        y_current *= window
 
         y[write_in:write_out] += y_current
 
@@ -78,24 +87,3 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
         write_out = write_in + frame_size
 
     return y
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    import scipy.io.wavfile
-
-    file_path = "../audio/008-you-possess-the-treasure-you-seek-seed001.wav"
-
-    # Test audio file.
-    sr, x = scipy.io.wavfile.read(file_path)
-    x = x / np.iinfo(np.int16).max
-    time_x = np.arange(len(x)) / sr
-
-    plt.plot(time_x, x, label='Original')
-
-    stretch_factor = 1
-    y = phase_vocoder(x, stretch_factor, frame_size=512)
-
-    time_y = np.arange(len(y)) / sr
-    plt.plot(time_y, y, label='Phase vocoder')
-    plt.show()
