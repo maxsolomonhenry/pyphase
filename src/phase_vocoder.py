@@ -22,7 +22,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
     y = np.zeros(y_num_samples)
 
     tmp = (num_frames - 1) * analysis_hop_size + frame_size
-    samples_to_pad = tmp - len(x)
+    samples_to_pad = np.maximum(0, tmp - len(x))
     samples_to_pad = np.int(samples_to_pad)
 
     # Pad beginning of `x` to facilitate first pivot frame.
@@ -91,3 +91,17 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
     y = y[:num_samples_out]
 
     return y
+
+
+if __name__ == "__main__":
+    import scipy.io.wavfile
+    file_path = "../audio/swear_demo.wav"
+
+    # Test audio file.
+    sr, x = scipy.io.wavfile.read(file_path)
+    x = x / np.iinfo(np.int16).max
+    x /= np.max(np.abs(x))
+
+    # Edge cases.
+    for stretch_factor in np.arange(0.1, 4, 0.1):
+        y = phase_vocoder(x, stretch_factor, frame_size=1024)
