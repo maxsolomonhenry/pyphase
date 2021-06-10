@@ -11,7 +11,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
 
     hop_size = math.ceil(frame_size / 4)
     hN = math.floor(frame_size / 2) + 1
-    window = np.hanning(frame_size) + [0]
+    window = np.hanning(frame_size)
 
     # Analysis hops faster or slower than synthesis, to time- squish or stretch.
     analysis_hop_size = math.ceil(hop_size / stretch_factor)
@@ -94,6 +94,7 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     import scipy.io.wavfile
     file_path = "../audio/swear_demo.wav"
 
@@ -101,6 +102,14 @@ if __name__ == "__main__":
     sr, x = scipy.io.wavfile.read(file_path)
     x = x / np.iinfo(np.int16).max
     x /= np.max(np.abs(x))
+
+    # Compare IO gain.
+    y = phase_vocoder(x, 1, frame_size=2048)
+
+    plt.plot(y, label='Phase vocoder')
+    plt.plot(x, label='Input')
+    plt.title('Compare IO gain')
+    plt.show()
 
     # Quick test of edge cases.
     for stretch_factor in np.arange(0.1, 4, 0.1):
