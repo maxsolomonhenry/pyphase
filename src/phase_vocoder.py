@@ -86,4 +86,8 @@ def phase_vocoder(x, stretch_factor, frame_size=1024):
         write_in += hop_size
         write_out = write_in + frame_size
 
+    # Truncate to nearest sample-length to match stretch value.
+    num_samples_out = math.ceil(len(x) * stretch_factor)
+    y = y[:num_samples_out]
+
     return y
