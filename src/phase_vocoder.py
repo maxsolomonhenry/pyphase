@@ -102,6 +102,7 @@ if __name__ == "__main__":
     x = x / np.iinfo(np.int16).max
     x /= np.max(np.abs(x))
 
-    # Edge cases.
+    # Quick test of edge cases.
     for stretch_factor in np.arange(0.1, 4, 0.1):
-        y = phase_vocoder(x, stretch_factor, frame_size=1024)
+        for frame_size in [32, 64, 128, 4096]:
+            y = phase_vocoder(x, stretch_factor, frame_size=frame_size)
